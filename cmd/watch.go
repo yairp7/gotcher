@@ -158,8 +158,8 @@ var watchCmd = &cobra.Command{
 			case result := <-resultsChan:
 				onResult(result)
 			case <-ctx.Done():
-				fmt.Print("\r")
-				fmt.Println("Shutting down...")
+				log.Print("\r")
+				log.Println("Shutting down...")
 				return
 			}
 		}

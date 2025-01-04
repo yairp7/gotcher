@@ -1,10 +1,12 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 )
+
+var version = "0.1"
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
@@ -13,8 +15,8 @@ func init() {
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number of gotcher",
-	Long:  `All software has versions. This is gotcher's`,
+	Long:  `This is gotcher's current version`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("gotcher v0.1")
+		log.Printf("gotcher v%s\n", version)
 	},
 }
