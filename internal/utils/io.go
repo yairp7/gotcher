@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -38,7 +37,6 @@ func ListFiles(rootPath string, filterFunc func(entry fs.DirEntry) bool) ([]stri
 		}
 
 		if filterFunc == nil || filterFunc(d) {
-			fmt.Println(path)
 			results = append(results, path)
 		}
 

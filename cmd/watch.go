@@ -41,7 +41,7 @@ func getDirsToWatch(path string) []string {
 	dirs := make([]string, len(subDirs)+1)
 	dirs[0] = path
 	copy(dirs[1:], subDirs)
-	return subDirs
+	return dirs
 }
 
 func runWatcher(ctx context.Context, dirs []string) (<-chan fsnotify.Event, error) {
@@ -75,7 +75,7 @@ func runWatcher(ctx context.Context, dirs []string) (<-chan fsnotify.Event, erro
 				if !ok {
 					return
 				}
-				log.Printf("error:", err)
+				log.Printf("error: %v", err)
 			case <-ctx.Done():
 				return
 			}
