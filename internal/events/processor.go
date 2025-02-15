@@ -4,6 +4,7 @@ import (
 	"context"
 	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/yairp7/gotcher/internal/utils"
@@ -31,6 +32,12 @@ func NewEventProcessor(ops []fsnotify.Op, pattern string, commandToRun string) (
 	}, err
 }
 
+func (ep *EventProcessor) replaceArgumentsIfNeeded(commandToRun string, event fsnotify.Event) string {
+	commandToRun = strings.ReplaceAll(commandToRun, "#[file]", event.Name)
+	commandToRun = strings.ReplaceAll(commandToRun, "#[op]", utils.Op2Name(event.Op))
+	return commandToRun
+}
+
 func (ep *EventProcessor) run(ctx context.Context, eventsChan <-chan fsnotify.Event) {
 	for {
 		select {
@@ -48,7 +55,8 @@ func (ep *EventProcessor) run(ctx context.Context, eventsChan <-chan fsnotify.Ev
 			}
 
 			result := Result{Path: event.Name}
-			if err := utils.ExecShell(ctx, ep.commandToRun); err != nil {
+			commandToRun := ep.replaceArgumentsIfNeeded(ep.commandToRun, event)
+			if err := utils.ExecShell(ctx, commandToRun); err != nil {
 				break
 			}
 			ep.resultsChan <- result

@@ -9,7 +9,7 @@ import (
 
 var ErrNoSuchOp = errors.New("no such op")
 
-func OpByName(eventName string) (op fsnotify.Op, err error) {
+func Name2Op(eventName string) (op fsnotify.Op, err error) {
 	switch strings.ToLower(eventName) {
 	case "write":
 		op = fsnotify.Write
@@ -23,4 +23,18 @@ func OpByName(eventName string) (op fsnotify.Op, err error) {
 		err = ErrNoSuchOp
 	}
 	return op, err
+}
+
+func Op2Name(op fsnotify.Op) string {
+	switch op {
+	case fsnotify.Write:
+		return "write"
+	case fsnotify.Remove:
+		return "remove"
+	case fsnotify.Rename:
+		return "rename"
+	case fsnotify.Chmod:
+		return "chmod"
+	}
+	return "unknown"
 }

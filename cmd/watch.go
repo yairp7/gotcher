@@ -24,7 +24,7 @@ func init() {
 func events2Ops(eventsFlags []string) ([]fsnotify.Op, error) {
 	ops := make([]fsnotify.Op, 0)
 	for _, event := range eventsFlags {
-		op, err := utils.OpByName(event)
+		op, err := utils.Name2Op(event)
 		if err != nil {
 			return nil, err
 		}
