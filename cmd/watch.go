@@ -56,12 +56,11 @@ func runWatcher(ctx context.Context, dirs []string) (<-chan fsnotify.Event, erro
 		defer close(eventsChan)
 
 		for _, dir := range dirs {
-			path := fmt.Sprintf("./%s", dir)
-			err = watcher.Add(path)
+			err = watcher.Add(dir)
 			if err != nil {
 				ExitWithError(fmt.Errorf("failed creating watcher - %v", err))
 			}
-			log.Printf("Added Watcher for %s", path)
+			log.Printf("Added Watcher for %s", dir)
 		}
 
 		for {
