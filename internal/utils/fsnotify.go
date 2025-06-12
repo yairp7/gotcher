@@ -11,6 +11,8 @@ var ErrNoSuchOp = errors.New("no such op")
 
 func Name2Op(eventName string) (op fsnotify.Op, err error) {
 	switch strings.ToLower(eventName) {
+	case "create":
+		op = fsnotify.Create
 	case "write":
 		op = fsnotify.Write
 	case "remove":
@@ -27,6 +29,8 @@ func Name2Op(eventName string) (op fsnotify.Op, err error) {
 
 func Op2Name(op fsnotify.Op) string {
 	switch op {
+	case fsnotify.Create:
+		return "create"
 	case fsnotify.Write:
 		return "write"
 	case fsnotify.Remove:
