@@ -3,7 +3,7 @@ package version
 // Version information
 var (
 	// Version is the current version of Gotcher
-	Version = "0.1.0"
+	Version = "1.0.2"
 
 	// GitCommit is the git commit hash and will be filled in by the build system
 	GitCommit = "unknown"
