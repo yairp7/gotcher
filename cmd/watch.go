@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 	"os/signal"
 	"syscall"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/yairp7/gotcher/internal/events"
+	"github.com/yairp7/gotcher/internal/handlers"
 	"github.com/yairp7/gotcher/internal/utils"
 )
 
@@ -19,6 +19,7 @@ func init() {
 	watchCmd.Flags().StringSlice("events", nil, "The events we want to be triggered by: WRITE, REMOVE, RENAME and CHMOD (comma separated)")
 	watchCmd.Flags().String("pattern", "", "The pattern of the files we want to be triggerd by their events")
 	watchCmd.Flags().String("cmd", "", "The command to run when the event occours")
+	watchCmd.Flags().Bool("follow", false, "Follow and watch directories that are created inside the watched path during runtime")
 }
 
 func events2Ops(eventsFlags []string) ([]fsnotify.Op, error) {
@@ -44,23 +45,23 @@ func getDirsToWatch(path string) []string {
 	return dirs
 }
 
-func runWatcher(ctx context.Context, dirs []string) (<-chan fsnotify.Event, error) {
+func runWatcher(ctx context.Context, dirs []string) (<-chan fsnotify.Event, *fsnotify.Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	eventsChan := make(chan fsnotify.Event)
-	go func(eventsChan chan fsnotify.Event) {
+	go func(ctx context.Context, eventsChan chan fsnotify.Event) {
 		defer watcher.Close()
 		defer close(eventsChan)
 
 		for _, dir := range dirs {
-			err = watcher.Add(dir)
-			if err != nil {
-				ExitWithError(fmt.Errorf("failed creating watcher - %v", err))
+			if err := utils.WatchDir(watcher, dir); err != nil {
+				logger.Error("Failed watching dir %s - %v", dir, err)
+				continue
 			}
-			log.Printf("Added Watcher for %s", dir)
+			logger.Info("Started watching %s", color.GreenString(dir))
 		}
 
 		for {
@@ -74,21 +75,21 @@ func runWatcher(ctx context.Context, dirs []string) (<-chan fsnotify.Event, erro
 				if !ok {
 					return
 				}
-				log.Printf("error: %v", err)
+				logger.Error("Error: %v", err)
 			case <-ctx.Done():
 				return
 			}
 		}
-	}(eventsChan)
+	}(ctx, eventsChan)
 
-	return eventsChan, nil
+	return eventsChan, watcher, nil
 }
 
 func onResult(result events.Result) {
-	log.Println(color.BlueString(fmt.Sprintf("Modified: %s", result.Path)))
+	logger.Info(color.BlueString(fmt.Sprintf("Modified: %s", result.Path)))
 
 	if result.Err != nil {
-		log.Println(color.RedString(fmt.Sprintf("%v", result.Err)))
+		logger.Error(color.RedString(fmt.Sprintf("%v", result.Err)))
 	}
 }
 
@@ -128,7 +129,7 @@ var watchCmd = &cobra.Command{
 		}
 
 		path := args[0]
-		if len(path) == 10 {
+		if len(path) == 0 {
 			ExitWithError(fmt.Errorf("must provide a path"))
 		} else if ok, err := utils.Exists(path); !ok || err != nil {
 			ExitWithError(fmt.Errorf("must provide a valid path to watch"))
@@ -139,16 +140,22 @@ var watchCmd = &cobra.Command{
 		ctx, cancelFunc := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 		defer cancelFunc()
 
-		eventsProcessor, err := events.NewEventProcessor(ops, pattern, execCmd)
+		eventsChan, watcher, err := runWatcher(ctx, dirs)
+		if err != nil {
+			ExitWithError(fmt.Errorf("failed creating watcher - %v", err))
+		}
+
+		eventHandlers := make([]events.Handler, 0)
+
+		if isFollow, _ := cmd.Flags().GetBool("follow"); isFollow {
+			eventHandlers = append(eventHandlers, handlers.NewFollowHandler(watcher, logger))
+		}
+
+		eventsProcessor, err := events.NewEventProcessor(ops, pattern, execCmd, eventHandlers...)
 		if err != nil {
 			ExitWithError(fmt.Errorf("failed creating processor - %v", err))
 		}
 		defer eventsProcessor.Close()
-
-		eventsChan, err := runWatcher(ctx, dirs)
-		if err != nil {
-			ExitWithError(fmt.Errorf("failed creating watcher - %v", err))
-		}
 
 		resultsChan := eventsProcessor.Run(ctx, eventsChan)
 
@@ -157,8 +164,7 @@ var watchCmd = &cobra.Command{
 			case result := <-resultsChan:
 				onResult(result)
 			case <-ctx.Done():
-				log.Print("\r")
-				log.Println("Shutting down...")
+				logger.Info("Shutting down...")
 				return
 			}
 		}
