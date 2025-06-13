@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/fatih/color"
@@ -33,7 +32,7 @@ func (h *FollowHandler) isExists(path string) bool {
 }
 
 func (h *FollowHandler) Handle(ctx context.Context, event fsnotify.Event) error {
-	fmt.Println(event)
+	h.logger.Debug("Event: %v", event)
 	if event.Op == fsnotify.Create && h.isDir(event.Name) {
 		if err := utils.WatchDir(h.watcher, event.Name); err != nil {
 			return err

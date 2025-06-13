@@ -16,6 +16,6 @@ var versionCmd = &cobra.Command{
 	Short: "Print the version information of gotcher",
 	Long:  `Display detailed version information including the version number, git commit hash, and build date.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(version.GetVersionInfo())
+		fmt.Printf("gotcher version %s\n", version.GetVersion())
 	},
 }

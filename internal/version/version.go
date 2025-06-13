@@ -1,9 +1,11 @@
 package version
 
+import "runtime/debug"
+
 // Version information
 var (
 	// Version is the current version of Gotcher
-	Version = "1.0.2"
+	Version = "dev"
 
 	// GitCommit is the git commit hash and will be filled in by the build system
 	GitCommit = "unknown"
@@ -12,7 +14,14 @@ var (
 	BuildDate = "unknown"
 )
 
-// GetVersionInfo returns a formatted string containing version information
-func GetVersionInfo() string {
-	return "Gotcher version " + Version + " (commit: " + GitCommit + ", built: " + BuildDate + ")"
+func GetVersion() string {
+	if Version != "dev" {
+		return Version
+	}
+
+	if info, ok := debug.ReadBuildInfo(); ok {
+		return info.Main.Version
+	}
+
+	return "unknown"
 }

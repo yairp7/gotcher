@@ -151,7 +151,7 @@ var watchCmd = &cobra.Command{
 			eventHandlers = append(eventHandlers, handlers.NewFollowHandler(watcher, logger))
 		}
 
-		eventsProcessor, err := events.NewEventProcessor(ops, pattern, execCmd, eventHandlers...)
+		eventsProcessor, err := events.NewEventProcessor(ops, pattern, execCmd, logger, eventHandlers...)
 		if err != nil {
 			ExitWithError(fmt.Errorf("failed creating processor - %v", err))
 		}

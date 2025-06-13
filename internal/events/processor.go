@@ -25,9 +25,10 @@ type EventProcessor struct {
 	fileRegexp   *regexp.Regexp
 	commandToRun string
 	handlers     []Handler
+	logger       utils.Logger
 }
 
-func NewEventProcessor(ops []fsnotify.Op, pattern string, commandToRun string, handlers ...Handler) (*EventProcessor, error) {
+func NewEventProcessor(ops []fsnotify.Op, pattern string, commandToRun string, logger utils.Logger, handlers ...Handler) (*EventProcessor, error) {
 	r, err := regexp.Compile(pattern)
 	return &EventProcessor{
 		resultsChan:  nil,
@@ -35,6 +36,7 @@ func NewEventProcessor(ops []fsnotify.Op, pattern string, commandToRun string, h
 		fileRegexp:   r,
 		commandToRun: commandToRun,
 		handlers:     handlers,
+		logger:       logger,
 	}, err
 }
 
@@ -70,10 +72,12 @@ func (ep *EventProcessor) run(ctx context.Context, eventsChan <-chan fsnotify.Ev
 			}
 
 			commandToRun := ep.replaceArgumentsIfNeeded(ep.commandToRun, event)
+			ep.logger.Debug("Executing command: %s", commandToRun)
 			if err := utils.ExecShell(ctx, commandToRun); err != nil {
-				break
+				ep.logger.Error("Failed to execute command: %v", err)
+				ep.resultsChan <- Result{Path: event.Name, Err: err}
+				continue
 			}
-
 			ep.resultsChan <- result
 		case <-ctx.Done():
 			return
